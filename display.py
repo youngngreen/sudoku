@@ -46,8 +46,6 @@ def display(Board):
         for x in range(board_size):
             cell = pygame.Rect(coord_x, coord_y, cell_size, cell_size)
             text = font.render(str(Board[x][y]), True, grey)
-            # window.blit(text, cell)
-            # window.blit(scale(text, (int(cell_size/2), int(cell_size/2))), cell)
             window.blit(scale(text, (cell_size, cell_size)), cell)
             coord_y += step
         coord_x += step

@@ -1,18 +1,18 @@
 import copy
 import time
+import os, psutil
+from createBoard import *
+from display import *
 
-class Problem(object):
+class Prob(object):
 
     def __init__(self, initial):
         self.initial = initial
-        self.size = len(initial) # Size of grid
-        self.height = int(self.size/3) # Size of a quadrant
+        self.size = len(initial)
+        self.height = int(self.size/3)
 
-    def check_legal(self, state):
-        # Maximum sum of row, column or quadrant
+    def isValid(self, state):
         exp_sum = sum(range(1, self.size+1))
-
-        # Returns false if expected sum of row or column are invalid
         for row in range(self.size):
             if (len(state[row]) != self.size) or (sum(state[row]) != exp_sum):
                 return False
@@ -22,33 +22,29 @@ class Problem(object):
             if (column_sum != exp_sum):
                 return False
 
-        # Returns false if expected sum of a quadrant is invalid
         for column in range(0,self.size,3):
             for row in range(0,self.size,self.height):
                 block_sum = 0
                 for block_row in range(0,self.height):
                     for block_column in range(0,3):
                         block_sum += state[row + block_row][column + block_column]
-
                 if (block_sum != exp_sum):
                     return False
         return True
 
-    # Return set of valid numbers from values that do not appear in used
-    def filter_values(self, values, used):
+    def valFil(self, values, used):
         return [number for number in values if number not in used]
 
-    # Return empty spot on grid with most constraints (least amount of options)
-    def get_spot(self, board, state):
+    def getSpt(self, board, state):
         target_option_len = board
         row = 0
         while row < board:
             column = 0
             while column < board:
                 if state[row][column] == 0:
-                    options = self.filter_row(state, row)
-                    options = self.filter_col(options, state, column)
-                    options = self.filter_quad(options, state, row, column)
+                    options = self.rowFil(state, row)
+                    options = self.colFil(options, state, column)
+                    options = self.quadFil(options, state, row, column)
                     if len(options) < target_option_len:
                         target_option_len = len(options)
                         options = []
@@ -58,86 +54,89 @@ class Problem(object):
             row = row + 1                
         return spotrow, spotcol
 
-    # Filter valid values based on row
-    def filter_row(self, state, row):
-        number_set = range(1, self.size+1) # Defines set of valid numbers that can be placed on board
+    def rowFil(self, state, row):
+        number_set = range(1, self.size+1)
         in_row = [number for number in state[row] if (number != 0)]
-        options = self.filter_values(number_set, in_row)
+        options = self.valFil(number_set, in_row)
         return options
 
-    # Filter valid values based on column
-    def filter_col(self, options, state, column):
+    def colFil(self, options, state, column):
         in_column = []
         for column_index in range(self.size):
             if state[column_index][column] != 0:
                 in_column.append(state[column_index][column])
-        options = self.filter_values(options, in_column)
+        options = self.valFil(options, in_column)
         return options
 
-    # Filter valid values based on quadrant
-    def filter_quad(self, options, state, row, column):
-        in_block = [] # List of valid values in spot's quadrant
+    def quadFil(self, options, state, row, column):
+        in_block = []
         row_start = int(row/self.height)*self.height
         column_start = int(column/3)*3
-        
         for block_row in range(0, self.height):
             for block_column in range(0,3):
                 in_block.append(state[row_start + block_row][column_start + block_column])
-        options = self.filter_values(options, in_block)
+        options = self.valFil(options, in_block)
         return options    
 
-    def actions(self, state):
-        row,column = self.get_spot(self.size, state) # Get first empty spot on board
-
-        # Remove a square's invalid values
-        options = self.filter_row(state, row)
-        options = self.filter_col(options, state, column)
-        options = self.filter_quad(options, state, row, column)
-
-        # Return a state for each valid option (yields multiple states)
+    def acts(self, state):
+        row,column = self.getSpt(self.size, state)
+        options = self.rowFil(state, row)
+        options = self.colFil(options, state, column)
+        options = self.quadFil(options, state, row, column)
         for number in options:
-            new_state = copy.deepcopy(state) # Norvig used only shallow copy to copy states; deepcopy works like a perfect clone of the original
+            new_state = copy.deepcopy(state)
             new_state[row][column] = number
             yield new_state
 
-class Node:
+class stateNode:
     
     def __init__(self, state):
         self.state = state
 
     def expand(self, problem):
-        # Return list of valid states
-        return [Node(state) for state in problem.actions(self.state)]
+        return [stateNode(state) for state in problem.acts(self.state)]
 
-def DFS(problem):
-    start = Node(problem.initial)
-    if problem.check_legal(start.state):
+def hillClimbing(problem):
+    start = stateNode(problem.initial)
+    if problem.isValid(start.state):
         return start.state
-
     stack = []
-    stack.append(start) # Places the root node on the stack
-
+    stack.append(start)
     while stack: 
-        node = stack.pop() # Pops the last node, tests legality, then expands the same popped node
-        if problem.check_legal(node.state):
+        node = stack.pop()
+        if problem.isValid(node.state):
             return node.state
         stack.extend(node.expand(problem)) 
     return None
 
-def H_Solve(board):
-    print ("\nHill Climbing Algorithms")
-    letters = False
+######### run ############
 
-    start_time = time.time()
-    problem = Problem(board)
-    solution = DFS(problem)
-    elapsed_time = time.time() - start_time
+filename = input('Please enter file\'s name (no extention): ')
+f = open('testname.txt', 'w')
+f.write(filename+'.txt')
+f.close()
 
-    if solution:
-        print ("Solution: ")
-        for row in solution:
-            print (row)
-    else:
-        print ("No solutions")
+try:
+    xx = n
+except:
+    import sys
+    sys.exit()
 
-    print ("Elapsed time: " + str(elapsed_time) + " seconds")
+start_time = time.time()
+
+problem = Prob(board)
+solution = hillClimbing(problem)
+elapsed_time = time.time() - start_time
+
+print("Hill Climbing Algorithms")
+if solution:
+    print ("One solution has been found. Please see the paygame window")
+else:
+    print ("No solutions")
+
+print ("Time spent: " + str(elapsed_time) + " seconds")
+
+process = psutil.Process(os.getpid())
+print('Memory spent: ', process.memory_info().rss, 'bytes')
+
+display(solution)
